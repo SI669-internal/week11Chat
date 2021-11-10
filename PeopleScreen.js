@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Text, View, 
   FlatList, TouchableOpacity, StyleSheet, Button } 
   from 'react-native';
@@ -13,6 +13,17 @@ export function PeopleScreen ({navigation, route}) {
 
   const { currentUserId } = route.params;
   const currentUser = dataModel.getUserForID(currentUserId);
+
+  useEffect(() => {
+    const dataModel = getDataModel();
+    const listenerId = dataModel.addUserListener(() => {
+      let newUsers = Array.from(dataModel.getUsers());
+      setUsers(newUsers);
+    });
+    return(() => {
+      dataModel.removeUserListener(listenerId);
+    });
+  }, []);
 
   return (
     <View style={styles.body}>

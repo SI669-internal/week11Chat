@@ -47,6 +47,7 @@ class DataModel {
 
   initUsersOnSnapshot() {
     onSnapshot(collection(db, 'users'), (qSnap) => {
+      console.log('snapshot:', qSnap);
       if (qSnap.empty) return;
       let userList = [];
       qSnap.forEach((docSnap) => {
@@ -82,18 +83,18 @@ class DataModel {
     }
     console.log('user not found, about to create');
     // if we got here, it's a new user
-    return await this.createUser(authUser);
+    let newUser = await this.createUser(authUser);
+    return newUser;
   }
 
   async createUser(authUser) {
-    // need to create the user document
     let newUser = {
-      displayName: "New User",
+      displayName: authUser.providerData[0].displayName,
       authId: authUser.uid        
     };
-    console.log('about to add doc for', newUser);
+    console.log('about to create new user', newUser);
+    console.log('from authUser user', authUser);
     const userDoc = await addDoc(collection(db, 'users'), newUser);
-    console.log('added doc, new id', userDoc);
     newUser.key = userDoc.id;
     this.notifyUserListeners();    
     return newUser;

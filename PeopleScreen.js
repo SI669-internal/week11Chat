@@ -3,7 +3,10 @@ import { Text, View,
   FlatList, TouchableOpacity, StyleSheet, Button } 
   from 'react-native';
 import { Feather as Icon } from '@expo/vector-icons';
+import { getAuth, signOut } from "firebase/auth"; 
 import { getDataModel } from './DataModel';
+
+const auth = getAuth();
 
 export function PeopleScreen ({navigation, route}) {
 
@@ -13,7 +16,6 @@ export function PeopleScreen ({navigation, route}) {
 
   const { currentUserId } = route.params;
   const currentUser = dataModel.getUserForID(currentUserId);
-  console.log(currentUser);
 
   return (
     <View style={styles.body}>
@@ -28,6 +30,7 @@ export function PeopleScreen ({navigation, route}) {
             color='black'
             size={24}
             onPress={()=>{
+              signOut(auth);
               navigation.navigate('Login');
             }}
           />

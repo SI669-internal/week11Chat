@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { TextInput, Text, View, 
   FlatList, TouchableOpacity, StyleSheet, Button, Alert } 
   from 'react-native';  
-import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
+import { getAuth, updateProfile,
+          signInWithEmailAndPassword,
+          createUserWithEmailAndPassword
+        } from "firebase/auth";
 import { getDataModel } from './DataModel';
 
 const auth = getAuth(); 
@@ -11,6 +14,8 @@ export function LoginScreen ({navigation, route}) {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('')
+  const [mode, setMode] = useState('login');
   const dataModel = getDataModel();
 
   return (
@@ -49,19 +54,76 @@ export function LoginScreen ({navigation, route}) {
           </View>
         </View>
 
+        {mode === 'signup' ? 
+          <View style={loginStyles.loginRow}>
+            <View style={loginStyles.loginLabelContainer}>
+              <Text style={loginStyles.loginLabelText}>Display Name: </Text>
+            </View>
+            <View style={loginStyles.loginInputContainer}>
+              <TextInput 
+                style={loginStyles.loginInputBox}
+                placeholder='enter display name' 
+                autoCapitalize='none'
+                spellCheck={false}
+                value={displayName}
+                onChangeText={(text)=>{setDisplayName(text)}}
+              />
+            </View>
+          </View>
+          :
+          <View></View>
+        }
+
+        <View style={loginStyles.modeSwitchContainer}>
+          {mode === 'login' ?
+            <Text>New user? 
+              <Text 
+                onPress={()=>{setMode('signup')}} 
+                style={{color: 'blue'}}> Sign up </Text> 
+            instead!</Text>
+          :
+            <Text>Existing user? 
+            <Text 
+              onPress={()=>{setMode('login')}} 
+              style={{color: 'blue'}}> Log In </Text> 
+            instead!</Text>
+          }
+        </View>
+
         <View style={loginStyles.loginButtonRow}>
           <Button
-            title="Log in"
+            title={mode==='login'?'Log in':'Sign up'}
             onPress={async ()=>{
+
+              if (mode === 'login') {
+                try {
+                  const credential = await signInWithEmailAndPassword(auth, email, password);
+                  const authUser = credential.user;      
+                  const user = await dataModel.getUserForAuthUser(authUser);
+                  navigation.navigate('People', {currentUserId: user.key});
+                } catch(error) {
+                  Alert.alert(
+                    "Login Error",
+                    error.message,
+                    [
+                      { text: "OK" }
+                    ]
+                  );
+                }
+                setEmail('');
+                setPassword('');
+            } else {
               try {
-                const credential = await signInWithEmailAndPassword(auth, email, password);
-                const authUser = credential.user;      
+                const credential = await createUserWithEmailAndPassword(auth, email, password);  
+                const authUser = credential.user;
+                await updateProfile(authUser, {displayName: displayName});
+                console.log('updated profile', authUser);
                 const user = await dataModel.getUserForAuthUser(authUser);
                 navigation.navigate('People', {currentUserId: user.key});
-              } catch {
+              } catch(error) {
                 Alert.alert(
-                  "Login Error",
-                  "Attempt Failed! Email and/or password not found!",
+                  "Sign Up Error",
+                  error.message,
                   [
                     { text: "OK" }
                   ]
@@ -69,11 +131,11 @@ export function LoginScreen ({navigation, route}) {
               }
               setEmail('');
               setPassword('');
-            }}
+            }
+          }}
           />
         </View>
       </View>
-
     </View>
   );
 }
@@ -120,6 +182,12 @@ const loginStyles = StyleSheet.create({
     borderRadius: 6,
     fontSize: 18,
     padding: '2%'
+  },
+  modeSwitchContainer:{
+    flex: 1, 
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%'
   },
   loginButtonRow: {
     flex: 1, 

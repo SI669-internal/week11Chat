@@ -5,6 +5,7 @@ import { Text, View,
 import { Feather as Icon } from '@expo/vector-icons';
 import { getAuth, signOut } from "firebase/auth"; 
 import { getDataModel } from './DataModel';
+import { useEffect } from 'react/cjs/react.development';
 
 const auth = getAuth();
 
@@ -15,7 +16,16 @@ export function PeopleScreen ({navigation, route}) {
   const [users, setUsers] = useState(initUsers);
 
   const { currentUserId } = route.params;
-  const currentUser = dataModel.getUserForID(currentUserId);
+  const initCurrentUser = dataModel.getUserForID(currentUserId);
+  const [currentUser, setCurrentUser] = useState(initCurrentUser)
+
+  useEffect(()=>{
+    dataModel.addUserListener(()=>{
+      console.log('users changed!', dataModel.getUsers());
+      setUsers(dataModel.getUsers());
+      setCurrentUser(dataModel.getUserForID(currentUserId));
+    });
+  }, []);
 
   return (
     <View style={styles.body}>

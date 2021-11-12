@@ -17,10 +17,20 @@ const db = initializeFirestore(app, {
 class DataModel {
 
   constructor() {
+
+  }
+
+  initOnAuth() {
     this.users = [];
     this.userListeners = [];
     this.chatListeners = [];
-    this.initUsersOnSnapshot();
+    this.unsubscribeFromUsersOnSnapshot = this.initUsersOnSnapshot();
+  }
+  
+  disconnectOnLogout() {
+    if (this.unsubscribeFromUsersOnSnapshot) {
+      this.unsubscribeFromUsersOnSnapshot();
+    }
   }
 
   addUserListener(callbackFunction) {
@@ -46,8 +56,8 @@ class DataModel {
   }
 
   initUsersOnSnapshot() {
-    onSnapshot(collection(db, 'users'), (qSnap) => {
-      console.log('snapshot:', qSnap);
+    console.log('in initUsersOnSnapshot');
+    return onSnapshot(collection(db, 'users'), (qSnap) => {
       if (qSnap.empty) return;
       let userList = [];
       qSnap.forEach((docSnap) => {
@@ -81,10 +91,10 @@ class DataModel {
         return u;
       }
     }
-    console.log('user not found, about to create');
-    // if we got here, it's a new user
-    let newUser = await this.createUser(authUser);
-    return newUser;
+    // console.log('user not found, about to create');
+    // // if we got here, it's a new user
+    // let newUser = await this.createUser(authUser);
+    return null;
   }
 
   async createUser(authUser) {
@@ -92,8 +102,7 @@ class DataModel {
       displayName: authUser.providerData[0].displayName,
       authId: authUser.uid        
     };
-    console.log('about to create new user', newUser);
-    console.log('from authUser user', authUser);
+    console.log('creating user', newUser);
     const userDoc = await addDoc(collection(db, 'users'), newUser);
     newUser.key = userDoc.id;
     this.notifyUserListeners();    

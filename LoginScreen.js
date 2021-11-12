@@ -4,7 +4,8 @@ import { TextInput, Text, View,
   from 'react-native';  
 import { getAuth, updateProfile,
           signInWithEmailAndPassword,
-          createUserWithEmailAndPassword
+          createUserWithEmailAndPassword,
+          onAuthStateChanged
         } from "firebase/auth";
 import { getDataModel } from './DataModel';
 
@@ -17,6 +18,18 @@ export function LoginScreen ({navigation, route}) {
   const [displayName, setDisplayName] = useState('')
   const [mode, setMode] = useState('login');
   const dataModel = getDataModel();
+
+  useEffect(()=>{
+    onAuthStateChanged(auth, async (authUser) => {
+      if (authUser) {
+        dataModel.initOnAuth();
+        const user = await dataModel.getUserForAuthUser(authUser);
+        navigation.navigate('People', {currentUserId: user.key});
+      } else {
+        dataModel.disconnectOnLogout();
+      }
+    })
+  }, []);
 
   return (
     <View style={loginStyles.body}>
@@ -98,9 +111,9 @@ export function LoginScreen ({navigation, route}) {
               if (mode === 'login') {
                 try {
                   const credential = await signInWithEmailAndPassword(auth, email, password);
-                  const authUser = credential.user;      
-                  const user = await dataModel.getUserForAuthUser(authUser);
-                  navigation.navigate('People', {currentUserId: user.key});
+                  // const authUser = credential.user;      
+                  // const user = await dataModel.getUserForAuthUser(authUser);
+                  // navigation.navigate('People', {currentUserId: user.key});
                 } catch(error) {
                   Alert.alert(
                     "Login Error",
@@ -114,12 +127,13 @@ export function LoginScreen ({navigation, route}) {
                 setPassword('');
             } else {
               try {
-                const credential = await createUserWithEmailAndPassword(auth, email, password);  
+                const credential = await createUserWithEmailAndPassword(auth, email, password);
                 const authUser = credential.user;
                 await updateProfile(authUser, {displayName: displayName});
-                console.log('updated profile', authUser);
-                const user = await dataModel.getUserForAuthUser(authUser);
-                navigation.navigate('People', {currentUserId: user.key});
+                dataModel.createUser(authUser);
+                // console.log('updated profile', authUser);
+                // const user = await dataModel.getUserForAuthUser(authUser);
+                // navigation.navigate('People', {currentUserId: user.key});
               } catch(error) {
                 Alert.alert(
                   "Sign Up Error",

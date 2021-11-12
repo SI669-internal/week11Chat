@@ -1,4 +1,3 @@
-import { useLinkTo } from '@react-navigation/native';
 import { initializeApp, getApps } from 'firebase/app';
 import { 
   initializeFirestore, collection,  
@@ -40,7 +39,7 @@ class DataModel {
     this.userListeners.splice(idx, 1);
   }
 
-  notifyUserListeners() {
+  notifyUserListeners() { 
     for (let ul of this.userListeners) {
       ul.callback();
     }
@@ -71,6 +70,33 @@ class DataModel {
       }
     }
     return null;
+  }
+
+  async getUserForAuthUser(authUser) {
+    console.log('getting User for ', authUser.uid);
+    const userAuthId = authUser.uid;
+    for (let u of this.users) {
+      if (u.authId === userAuthId) {
+        return u;
+      }
+    }
+    console.log('user not found, about to create');
+    // if we got here, it's a new user
+    return await this.createUser(authUser);
+  }
+
+  async createUser(authUser) {
+    // need to create the user document
+    let newUser = {
+      displayName: "New User",
+      authId: authUser.uid        
+    };
+    console.log('about to add doc for', newUser);
+    const userDoc = await addDoc(collection(db, 'users'), newUser);
+    console.log('added doc, new id', userDoc);
+    newUser.key = userDoc.id;
+    this.notifyUserListeners();    
+    return newUser;
   }
 
   addChatListener(chatId, callbackFunction) {
@@ -120,15 +146,14 @@ class DataModel {
     return (userPair[0] + '-' + userPair[1]);
   }
 
-  addChatMessage(chatId, messageContents) {
+  async addChatMessage(chatId, messageContents) {
 
     // construct a reference to the chat's Firestore doc
     let chatDocRef = doc(db, 'chats', chatId);
 
     // create chat doc if it doesn't exist, otherwise update participants
-    let participants = messageContents.recipients;
-    participants.push(messageContents.authorId);
-    setDoc(chatDocRef, {participants: participants});
+    let participants = [messageContents.authorId, messageContents.otherUserId];
+    await setDoc(chatDocRef, {participants: participants});
 
     // add the message to the chat doc's 'messages' collection
     let messagesRef = collection(chatDocRef, 'messages');

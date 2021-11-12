@@ -58,7 +58,7 @@ export function ChatScreen ({navigation, route}) {
               let messageContents = {
                 text: messageInput,
                 authorId: currentUserId,
-                recipients: [otherUserId],
+                otherUserId: otherUserId,
                 timestamp: new Date()
               };
               dataModel.addChatMessage(chatId, messageContents);

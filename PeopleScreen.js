@@ -13,6 +13,7 @@ export function PeopleScreen ({navigation, route}) {
 
   const { currentUserId } = route.params;
   const currentUser = dataModel.getUserForID(currentUserId);
+  console.log(currentUser);
 
   return (
     <View style={styles.body}>

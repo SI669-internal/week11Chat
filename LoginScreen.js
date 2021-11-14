@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { TextInput, Text, View, 
-  FlatList, TouchableOpacity, StyleSheet, Button, Alert } 
+  FlatList, TouchableOpacity, StyleSheet, Button, Alert, Switch } 
   from 'react-native';  
 import { getAuth, updateProfile,
           signInWithEmailAndPassword,
@@ -23,8 +23,7 @@ export function LoginScreen ({navigation, route}) {
     onAuthStateChanged(auth, async (authUser) => {
       if (authUser) {
         dataModel.initOnAuth();
-        const user = await dataModel.getUserForAuthUser(authUser);
-        navigation.navigate('People', {currentUserId: user.key});
+        navigation.navigate('People', {currentUserId: authUser.uid});
       } else {
         dataModel.disconnectOnLogout();
       }
@@ -111,9 +110,6 @@ export function LoginScreen ({navigation, route}) {
               if (mode === 'login') {
                 try {
                   const credential = await signInWithEmailAndPassword(auth, email, password);
-                  // const authUser = credential.user;      
-                  // const user = await dataModel.getUserForAuthUser(authUser);
-                  // navigation.navigate('People', {currentUserId: user.key});
                 } catch(error) {
                   Alert.alert(
                     "Login Error",
@@ -131,9 +127,6 @@ export function LoginScreen ({navigation, route}) {
                 const authUser = credential.user;
                 await updateProfile(authUser, {displayName: displayName});
                 dataModel.createUser(authUser);
-                // console.log('updated profile', authUser);
-                // const user = await dataModel.getUserForAuthUser(authUser);
-                // navigation.navigate('People', {currentUserId: user.key});
               } catch(error) {
                 Alert.alert(
                   "Sign Up Error",

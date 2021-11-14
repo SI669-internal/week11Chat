@@ -1,19 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Text, View, 
   FlatList, TouchableOpacity, StyleSheet, Button } 
   from 'react-native';
 import { Feather as Icon } from '@expo/vector-icons';
 import { getAuth, signOut } from "firebase/auth"; 
 import { getDataModel } from './DataModel';
-import { useEffect } from 'react/cjs/react.development';
 
 const auth = getAuth();
 
 export function PeopleScreen ({navigation, route}) {
 
   const dataModel = getDataModel();
-  const initUsers = dataModel.getUsers();
-  const [users, setUsers] = useState(initUsers);
+  const [users, setUsers] = useState([]);
 
   const { currentUserId } = route.params;
   const initCurrentUser = dataModel.getUserForID(currentUserId);
@@ -21,7 +19,6 @@ export function PeopleScreen ({navigation, route}) {
 
   useEffect(()=>{
     dataModel.addUserListener(()=>{
-      console.log('users changed!', dataModel.getUsers());
       setUsers(dataModel.getUsers());
       setCurrentUser(dataModel.getUserForID(currentUserId));
     });
@@ -33,13 +30,14 @@ export function PeopleScreen ({navigation, route}) {
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <Text style={[styles.headerText, {fontSize: 32}]}>
-            Hi, {currentUser.displayName}! 
+            Hi, {currentUser ? currentUser.displayName : 'Somebody!'}! 
           </Text>
           <Icon 
             name='log-out'
             color='black'
             size={24}
             onPress={()=>{
+              dataModel.disconnectOnLogout();
               signOut(auth);
               navigation.navigate('Login');
             }}
@@ -56,7 +54,7 @@ export function PeopleScreen ({navigation, route}) {
         <FlatList
           data={users}
           renderItem={({item}) => {
-            if (item.key === currentUser.key) {
+            if (!currentUser || (item.key === currentUser.key)) {
               return <View/>
             } else {
               return (

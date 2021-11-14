@@ -24,13 +24,22 @@ class DataModel {
     this.users = [];
     this.userListeners = [];
     this.chatListeners = [];
-    this.unsubscribeFromUsersOnSnapshot = this.initUsersOnSnapshot();
+    this.usersOnSnapshotUnsub = undefined;
+    this.chatOnSnapshotUnsub = undefined;
+    this.initUsersOnSnapshot();
   }
   
   disconnectOnLogout() {
-    if (this.unsubscribeFromUsersOnSnapshot) {
-      this.unsubscribeFromUsersOnSnapshot();
+    if (this.usersOnSnapshotUnsub) {
+      this.usersOnSnapshotUnsub();
     }
+    if (this.chatOnSnapshotUnsub) {
+      this.chatOnSnapshotUnsub();
+    }
+    this.usersOnSnapshotUnsub = undefined;
+    this.chatOnSnapshotUnsub = undefined;
+    this.chatListeners = [];
+    
   }
 
   addUserListener(callbackFunction) {
@@ -56,8 +65,8 @@ class DataModel {
   }
 
   initUsersOnSnapshot() {
-    console.log('in initUsersOnSnapshot');
-    return onSnapshot(collection(db, 'users'), (qSnap) => {
+    if (this.usersOnSnapshotUnsub) return; // already subscribed
+    this.usersOnSnapshotUnsub = onSnapshot(collection(db, 'users'), (qSnap) => {
       if (qSnap.empty) return;
       let userList = [];
       qSnap.forEach((docSnap) => {
@@ -75,6 +84,8 @@ class DataModel {
   }
 
   getUserForID(id) {
+    console.log('looking for user', id);
+    console.log('users are', this.users);
     for (let u of this.users) {
       if (u.key === id) {
         return u;
@@ -91,22 +102,17 @@ class DataModel {
         return u;
       }
     }
-    // console.log('user not found, about to create');
-    // // if we got here, it's a new user
-    // let newUser = await this.createUser(authUser);
     return null;
   }
 
   async createUser(authUser) {
-    let newUser = {
-      displayName: authUser.providerData[0].displayName,
-      authId: authUser.uid        
-    };
-    console.log('creating user', newUser);
-    const userDoc = await addDoc(collection(db, 'users'), newUser);
-    newUser.key = userDoc.id;
+    const userDocRef = doc(db, 'users', authUser.uid);
+    await setDoc(userDocRef, {displayName: authUser.providerData[0].displayName})    
     this.notifyUserListeners();    
-    return newUser;
+  }
+
+  async updateUser(userId, data) {
+
   }
 
   addChatListener(chatId, callbackFunction) {
@@ -121,7 +127,9 @@ class DataModel {
     let messagesRef = collection(chatDocRef, 'messages');
     let messageQuery = query(messagesRef, orderBy('timestamp', 'desc'));
 
-    onSnapshot(messageQuery, (qSnap) => {
+    if (this.chatOnSnapshotUnsub) this.chatOnSnapshotUnsub(); // start over
+
+    this.chatOnSnapshotUnsub = onSnapshot(messageQuery, (qSnap) => {
       if (qSnap.empty) return;
       let allMessages = [];
       qSnap.forEach((docSnap) => {
@@ -140,6 +148,10 @@ class DataModel {
   removeChatListener(listenerId) {
     let idx = this.chatListeners.findIndex((elem)=>elem.listenerId===listenerId);
     this.chatListeners.splice(idx, 1);
+    if (this.chatListeners.length === 0) {
+      this.chatOnSnapshotUnsub();
+      this.chatOnSnapshotUnsub = undefined;
+    }
   }
 
   notifyChatListeners(chatId, allMessages) {

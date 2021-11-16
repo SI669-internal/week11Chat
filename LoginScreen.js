@@ -116,10 +116,9 @@ export function LoginScreen ({navigation, route}) {
               try {
                 const credential = await createUserWithEmailAndPassword(auth, email, password);  
                 const authUser = credential.user;
-                await updateProfile(authUser, {displayName: displayName});
-                console.log('updated profile', authUser);
-                const user = await dataModel.getUserForAuthUser(authUser);
-                navigation.navigate('People', {currentUserId: user.key});
+                const userId = await dataModel.createUser(authUser);
+                await dataModel.updateUser(userId, {displayName: displayName});
+                navigation.navigate('People', {currentUserId: userId});
               } catch(error) {
                 Alert.alert(
                   "Sign Up Error",

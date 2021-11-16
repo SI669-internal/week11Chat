@@ -2,7 +2,7 @@ import { initializeApp, getApps } from 'firebase/app';
 import { 
   initializeFirestore, collection,  
   query, orderBy, onSnapshot,
-  doc, addDoc, setDoc
+  doc, addDoc, setDoc, updateDoc
 } from "firebase/firestore";
 import { firebaseConfig } from './Secrets';
 
@@ -89,15 +89,15 @@ class DataModel {
 
   async createUser(authUser) {
     let newUser = {
-      displayName: authUser.providerData[0].displayName,
       authId: authUser.uid        
     };
-    console.log('about to create new user', newUser);
-    console.log('from authUser user', authUser);
     const userDoc = await addDoc(collection(db, 'users'), newUser);
-    newUser.key = userDoc.id;
-    this.notifyUserListeners();    
-    return newUser;
+    return userDoc.id;
+  }
+
+  async updateUser(userId, data) {
+    const docRef = doc(collection(db, 'users'), userId);
+    await updateDoc(docRef, data);
   }
 
   addChatListener(chatId, callbackFunction) {
